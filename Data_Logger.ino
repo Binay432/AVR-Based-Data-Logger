@@ -42,8 +42,11 @@ void UART_print(char *str)
 //---------- ADC INIT ----------
 void ADC_init(void)
 {
-    ADMUX = (1 << REFS0);   // Setting External AREF (3.3V)
-    ADCSRA = (1 << ADEN) |(1 << ADPS2) | (1 << ADPS1);  //Enabling ADC and Setting the clock speed
+  // REFS1=0 and REFS0=0 selects the External AREF pin
+    ADMUX = 0x00;
+    
+    // ADMUX = (1 << REFS1);   // Setting External AREF (3.3V)
+    ADCSRA = (1 << ADEN) |(1 << ADPS2) | (1 << ADPS1) | (1 << ADPS0);  //Enabling ADC and Setting the clock speed
 }
 
 //---------- ADC READ ----------
@@ -116,22 +119,38 @@ void loop()
     uint16_t ldr = ADC_read(0);      // ADC0
     uint16_t temp_adc = ADC_read(1); // ADC1
 
-    float voltage = temp_adc * 3.3 / 1024.0;
-    float temperature = (voltage - 0.5) * 100.0;
+//    float voltage = (temp_adc * 3.3 )/ 1024.0;
+//    float temperature = (voltage - 0.5) * 100.0;
+//
+//    //Floating part is not allow in avr
+//    int temp_whole = (int)temperature;
+//    int temp_frac = (int)((temperature - temp_whole) * 100);
+//    if (temp_frac < 0) temp_frac *= -1; // Handling negative numbers
+//
+//    uint8_t sec  = DS1307_read(0x00);
+//    uint8_t min  = DS1307_read(0x01);
+//    uint8_t hour = DS1307_read(0x02);
+//  
+//    sprintf(buffer,
+//        "TIME %02X:%02X:%02X | TEMP: %02d.%02d C | LDR: %u\r\n",
+//        hour, min, sec, temperature, ldr);
+// Math using 3.3V AREF
 
-    //Floating part is not allow in avr
-    int temp_whole = (int)temperature;
-    int temp_frac = (int)((temperature - temp_whole) * 100);
-    if (temp_frac < 0) temp_frac *= -1; // Handle negative numbers
+    // (temp_adc * 3300 / 1024) gives millivolts
+    long mv = (temp_adc * 3300L) / 1024;
+    
+    // TMP36 formula: (mV - 500) / 10
+    int temp_c = (mv - 500) / 10; 
 
+    // RTC Read (Keeping your current I2C logic)
     uint8_t sec  = DS1307_read(0x00);
     uint8_t min  = DS1307_read(0x01);
     uint8_t hour = DS1307_read(0x02);
-  
-    sprintf(buffer,
-        "TIME %02X:%02X:%02X | TEMP: %d.%2d C | LDR: %u\r\n",
-        hour, min, sec, temperature, ldr);
 
+    // Using %d (Integers) avoids the sprintf float bug!
+    sprintf(buffer, "TIME %02X:%02X:%02X | TEMP: %d C | LDR: %u\r\n", 
+            hour, min, sec, temp_c, ADC_read(0));
+   
     UART_print(buffer);
     _delay_ms(1000);
 }
