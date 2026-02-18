@@ -27,6 +27,11 @@ The system monitors environmental data using an LDR (Light) and a TMP36 (Tempera
 ## 📐 Hardware Configuration
 
 The circuit diagram is from proteous learnig:
-<img width="1225" height="617" alt="image" src="https://github.com/user-attachments/assets/72b139af-b2e4-49ab-9485-5aaf26f574d5" />
+
+<img width="1251" height="816" alt="Screenshot 2026-02-18 235343" src="https://github.com/user-attachments/assets/16a0c623-70c9-4762-a07e-dec0fe94a877" />
 
 ---
+
+## Output
+
+<img width="556" height="293" alt="Screenshot 2026-02-18 235320" src="https://github.com/user-attachments/assets/926efa4b-e54f-41c0-b0dd-14920b363915" />
