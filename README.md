@@ -14,6 +14,12 @@ The system monitors environmental data using an LDR (Light) and a TMP36 (Tempera
 
 ---
 
+### Key Learned Concept
+#### ```UBRR_VALUE:``` 
+* Stands for Universal Synchronous/Asynchronous Receiver/Transmitter (the hardware inside the chip).
+* The microcontroller doesn't "know" what 9600 bps is. It only knows its internal clock speed ($16\text{ MHz}$). We use the UBRR value to tell the hardware how many clock cycles to count before sending a single bit of data.
+
+
 ## 📐 Hardware Configuration
 The circuit diagram is from proteous learnig:
 <img width="1225" height="617" alt="image" src="https://github.com/user-attachments/assets/72b139af-b2e4-49ab-9485-5aaf26f574d5" />
