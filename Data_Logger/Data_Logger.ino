@@ -167,8 +167,9 @@ int main(void) {
             }
         }
 
-        // Action based on State
-        if (currentState == STATE_LOGGING) {
+        // Action based on State  
+        // To let stop button run parrallely (Co-operative Multi-tasking)
+        if ((currentState == STATE_LOGGING)& ((system_ms - last_print_time) >= 2000) ) {
             uint16_t ldr = ADC_read(0);
             uint16_t temp_adc = ADC_read(1);
 
@@ -187,16 +188,9 @@ int main(void) {
             sprintf(buffer,
             "Date & Time: 20%02d-%02d-%02d %02d:%02d:%02d\r\nTemp: %d C | Light: %u\r\n\n",
             year, month, date, hour, mint, sec, temp_c, ldr);
-
-            // To let stop button run parrallely (Multi-tasking)
-            if ((system_ms - last_print_time) >= 2000)
-            {
-                last_print_time = system_ms;
             
-                 UART_print(buffer);
-            }
-            
-            _delay_ms(200); // sample rate
+            UART_print(buffer);
+            last_print_time = system_ms;
         } else {
             // Idle loop - tiny delay to save processing power in simulation
             _delay_ms(100); 
