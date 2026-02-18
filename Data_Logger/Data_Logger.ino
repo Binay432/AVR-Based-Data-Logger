@@ -3,6 +3,7 @@
 #include <avr/io.h>
 #include <util/delay.h>
 #include <stdio.h>
+#include <avr/interrupt.h>
 
 // Definitions
 #define BAUD 9600
@@ -19,6 +20,8 @@ typedef enum {
 } SystemState;
 
 SystemState currentState = STATE_IDLE;
+
+volatile uint32_t system_ms = 0;
 
 //---------- UART & ADC FUNCTIONS ----------
 void UART_init(void) {
@@ -98,6 +101,7 @@ uint8_t bcdToDec(uint8_t val)
     return ((val >> 4) * 10) + (val & 0x0F);
 }
 
+
 //---------- GPIO INIT ----------
 void GPIO_init(void) {
     // Set PD2 and PD3 as Inputs (0)
@@ -105,6 +109,21 @@ void GPIO_init(void) {
     // No internal pull-ups needed because schematic has external pull-downs
 }
 
+//--------- Timer0 init ------- 
+void TIMER0_init(void)
+{
+    TCCR0A = (1 << WGM01);   // CTC mode
+    TCCR0B = (1 << CS01) | (1 << CS00);  // Prescaler 64
+
+    OCR0A = 249;  
+    // 16MHz / 64 = 250000 Hz
+    // 250000 / 1000 = 250 counts
+    // So OCR0A = 249 → 1ms interrupt
+
+    TIMSK0 = (1 << OCIE0A);  // Enable compare interrupt
+
+    sei();  // Enable global interrupts
+}
 
 //---------- MAIN LOGIC ----------
 void setup(void) {
@@ -112,6 +131,8 @@ void setup(void) {
     ADC_init();
     I2C_init();
     GPIO_init();
+    TIMER0_init(); 
+    
     UART_print("CUSTOM DATA LOGGER TEST BY BINAY.\r\n");
     UART_print("SYSTEM READY. PRESS START TO LOG.\r\n");
 }
@@ -119,6 +140,8 @@ void setup(void) {
 int main(void) {
     setup();
     char buffer[80];
+    static uint32_t last_print_time = 0;
+    
     while (1) {
         // Check for START button (Active High)
         if (PIND & (1 << START_PIN)) {
@@ -135,6 +158,7 @@ int main(void) {
         // Check for STOP button (Active High)
         if (PIND & (1 << STOP_PIN)) {
             _delay_ms(50); // Debounce
+            UART_print("--- Stop Button Pressed ---\r\n");
             if (PIND & (1 << STOP_PIN)) {
                 if (currentState == STATE_LOGGING) {
                     currentState = STATE_IDLE;
@@ -161,15 +185,26 @@ int main(void) {
 
             
             sprintf(buffer,
-            "Date & Time: 20%02d-%02d-%02d %02d:%02d:%02d\r\nTemp: %d C | Light: %u\r\n",
+            "Date & Time: 20%02d-%02d-%02d %02d:%02d:%02d\r\nTemp: %d C | Light: %u\r\n\n",
             year, month, date, hour, mint, sec, temp_c, ldr);
 
-            UART_print(buffer);
+            // To let stop button run parrallely (Multi-tasking)
+            if ((system_ms - last_print_time) >= 2000)
+            {
+                last_print_time = system_ms;
             
-            _delay_ms(1000); // 1 second sample rate
+                 UART_print(buffer);
+            }
+            
+            _delay_ms(200); // sample rate
         } else {
             // Idle loop - tiny delay to save processing power in simulation
             _delay_ms(100); 
         }
     }
+}
+
+ISR(TIMER0_COMPA_vect)
+{
+    system_ms++;
 }
